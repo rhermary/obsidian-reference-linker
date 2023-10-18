@@ -1,7 +1,7 @@
 {
 	"id": "reference-linker",
 	"name": "Reference Linker",
-	"version": "1.5.0",
+	"version": "1.5.1",
 	"minAppVersion": "0.15.0",
 	"description": "Link your Zotero references to your notes.",
 	"author": "Kazoryah",

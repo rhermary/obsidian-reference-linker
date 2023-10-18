@@ -85,7 +85,7 @@ export class LinkerModal extends SuggestModal<ZoteroItem> {
                 return file.path === newFilePath
             })[0];
 
-            this.app.workspace.getLeaf().openFile(file);
+            this.app.workspace.getLeaf("tab").openFile(file);
             
             return;
         }
@@ -94,6 +94,6 @@ export class LinkerModal extends SuggestModal<ZoteroItem> {
         render += formatAnnotations(annotations);
 
         const newFile = await this.app.vault.create(newFilePath, render);
-        this.app.workspace.getLeaf().openFile(newFile);
+        this.app.workspace.getLeaf("tab").openFile(newFile);
     }
 }
