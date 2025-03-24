@@ -1,8 +1,13 @@
 import { App, SuggestModal } from 'obsidian';
 import { ZoteroItem } from './zotero/ZoteroItem';
 import { ReferenceLinker } from './ReferenceLinker';
+import { BibTeXItem } from './bibtex/BibTeXItem';
+import { ZoteroAdapter } from './zotero/ZoteroAdapter';
+import { BibtexAdapter } from './bibtex/BibtexAdapter';
 
-export class SimpleCiteModal extends SuggestModal<ZoteroItem> {
+type RefItem = ZoteroItem | BibTeXItem
+
+export class SimpleCiteModal extends SuggestModal<RefItem> {
     plugin: ReferenceLinker;
 
     constructor(app: App, plugin: ReferenceLinker) {
@@ -21,14 +26,19 @@ export class SimpleCiteModal extends SuggestModal<ZoteroItem> {
         inputEl.empty();
     }
 
-    renderSuggestion(reference: ZoteroItem, el: HTMLElement) {
+    renderSuggestion(reference: RefItem, el: HTMLElement) {
         el.createEl("div", { text: reference.getTitle() });
         el.createEl("small", { text: reference.getAuthors() });
     }
 
-    getSuggestions(query: string): ZoteroItem[] | Promise<ZoteroItem[]> {
-        return this.plugin.zoteroAdapter.searchEverything(query)
-            .then((items: ZoteroItem[]) =>
+    getSuggestions(query: string): RefItem[] | Promise<RefItem[]> {
+        let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
+        if (this.plugin.bibtexAdapter.settings.force) {
+            adapter = this.plugin.bibtexAdapter;
+        }
+
+        return adapter.searchEverything(query)
+            .then((items: RefItem[]) =>
                 Object.fromEntries(items.map(x => [x.getCiteKey(), x]))
             )
             .then((items) => Object.values(items));
@@ -44,7 +54,7 @@ export class SimpleCiteModal extends SuggestModal<ZoteroItem> {
         ).length > 0
     }
 
-    async onChooseSuggestion(item: ZoteroItem, evt: MouseEvent | KeyboardEvent) {
+    async onChooseSuggestion(item: RefItem, evt: MouseEvent | KeyboardEvent) {
         let content = item.getCiteKey();
         const editor = this.app.workspace.activeEditor?.editor
         const currentFile = this.app.workspace.getActiveFile()

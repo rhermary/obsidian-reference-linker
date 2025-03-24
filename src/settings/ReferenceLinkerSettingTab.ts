@@ -73,5 +73,29 @@ export class ReferenceLinkerSettingTab extends PluginSettingTab {
                     this.plugin.settings.zoteroBridgeSettings.port = value;
                     await this.plugin.saveSettings();
                 }));
+    
+
+        containerEl.createEl('h2', { text: 'BibTeX Settings' });
+
+        new Setting(containerEl)
+            .setName("BibTeX File Path")
+            .setDesc("Path to the exported references")
+            .addText(text => text
+                .setPlaceholder('')
+                .setValue(this.plugin.settings.bibtexSettings.exportedBibPath)
+                .onChange(async (value) => {
+                    this.plugin.settings.bibtexSettings.exportedBibPath = value;
+                    await this.plugin.saveSettings();
+                }));
+
+        new Setting(containerEl)
+        .setName("Force BibTeX")
+        .setDesc("Only check for a BibTeX file, bypassing Zotero use")
+        .addToggle(toggle => toggle
+            .setValue(this.plugin.settings.bibtexSettings.force)
+            .onChange(async (value) => {
+                this.plugin.settings.bibtexSettings.force = value;
+                await this.plugin.saveSettings();
+            }));
     }
 }

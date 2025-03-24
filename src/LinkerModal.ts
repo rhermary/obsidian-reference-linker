@@ -5,8 +5,13 @@ import { DateTime } from 'luxon';
 import { ReferenceLinker } from './ReferenceLinker';
 import { PDFManager } from './pdf/PDFManager';
 import { formatAnnotations } from './utils';
+import { BibTeXItem } from './bibtex/BibTeXItem';
+import { ZoteroAdapter } from './zotero/ZoteroAdapter';
+import { BibtexAdapter } from './bibtex/BibtexAdapter';
 
-export class LinkerModal extends SuggestModal<ZoteroItem> {
+type RefItem = ZoteroItem | BibTeXItem 
+
+export class LinkerModal extends SuggestModal<RefItem> {
     plugin: ReferenceLinker;
     template: TFile;
     _env: njk.Environment;
@@ -47,14 +52,19 @@ export class LinkerModal extends SuggestModal<ZoteroItem> {
         inputEl.empty();
     }
 
-    renderSuggestion(reference: ZoteroItem, el: HTMLElement) {
+    renderSuggestion(reference: RefItem, el: HTMLElement) {
         el.createEl("div", { text: reference.getTitle() });
         el.createEl("small", { text: reference.getAuthors() });
     }
 
-    getSuggestions(query: string): ZoteroItem[] | Promise<ZoteroItem[]> {
-        return this.plugin.zoteroAdapter.searchEverything(query)
-            .then((items: ZoteroItem[]) =>
+    getSuggestions(query: string): RefItem[] | Promise<RefItem[]> {
+        let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
+        if (this.plugin.bibtexAdapter.settings.force) {
+            adapter = this.plugin.bibtexAdapter;
+        }
+
+        return adapter.searchEverything(query)
+            .then((items: RefItem[]) =>
                 Object.fromEntries(items.map(x => [x.getCiteKey(), x]))
             )
             .then((items) => Object.values(items));
@@ -70,7 +80,7 @@ export class LinkerModal extends SuggestModal<ZoteroItem> {
         ).length > 0
     }
 
-    async onChooseSuggestion(item: ZoteroItem, evt: MouseEvent | KeyboardEvent) {
+    async onChooseSuggestion(item: RefItem, evt: MouseEvent | KeyboardEvent) {
         const content = await this.app.vault.read(this.template);
         let render = this._env.renderString(content, {
             ...item.raw,

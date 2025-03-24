@@ -6,16 +6,19 @@ import { LinkerModal } from './LinkerModal';
 import { ImportModal } from './ImportModal';
 import { SimpleCiteModal } from './SimpleCiteModal';
 import { ScreenedModal } from './ScreenedModal';
+import { BibtexAdapter } from './bibtex/BibtexAdapter';
 
 
 export class ReferenceLinker extends Plugin {
     settings: PluginSettings
     zoteroAdapter: ZoteroAdapter
+    bibtexAdapter: BibtexAdapter
     
     async onload(): Promise<void> {
         await this.loadSettings();
 
         this.zoteroAdapter = new ZoteroAdapter(this.settings.zoteroBridgeSettings)
+        this.bibtexAdapter = new BibtexAdapter(this.settings.bibtexSettings, this.app)
 
 		this.addSettingTab(new ReferenceLinkerSettingTab(this.app, this));
 
