@@ -7,7 +7,7 @@ import Fuse from 'fuse.js';
 
 export class BibtexAdapter {
     settings: BibtexSettings
-    refs: BibTeXItem[] | null
+    refs: BibTeXItem[]
     _fuse: Fuse<BibTeXItem> | null = null
 
     constructor(settings: BibtexSettings, app: App) {
@@ -52,17 +52,13 @@ export class BibtexAdapter {
             }
         } else {
             new Notice(`Could not read BibTeX file \`${this.settings.exportedBibPath}\`.`)
-            this.refs = null
+            this.refs = []
         }
 
         new Notice(`Loaded ${this.refs?.length} BibTeX items.`)
     }
 
     public async searchEverything(query: string) : Promise<BibTeXItem[]> {
-        if (this.refs == null) {
-            return [];
-        }
-
         if (this._fuse == null) {
             this._fuse = new Fuse(this.refs, {
                 keys: [

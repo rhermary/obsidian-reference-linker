@@ -1,6 +1,6 @@
 {
 	"name": "reference-linker",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Link your references and notes",
 	"main": "main.js",
 	"scripts": {
