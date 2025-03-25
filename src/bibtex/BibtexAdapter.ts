@@ -13,6 +13,10 @@ export class BibtexAdapter {
         this.settings = settings;
         this.refs = [];
 
+        app.workspace.onLayoutReady(() => this.loadReferences(app));
+    }
+
+    private loadReferences(app: App) {
         const folder = app.vault.getAbstractFileByPath(this.settings.bibFolder);
         
         if (folder == null || !(folder instanceof TFolder)) {
