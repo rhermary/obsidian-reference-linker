@@ -22,7 +22,7 @@ export class BibtexAdapter {
 
         const promises = folder.children
             .filter(file => file instanceof TFile)
-            .map(file => app.vault.read(file));
+            .map(file => app.vault.read(file as TFile));
 
         Promise.all(promises).then(contents => {
             contents.map(content => {
