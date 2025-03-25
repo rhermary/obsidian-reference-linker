@@ -1,5 +1,5 @@
 import { BibtexSettings } from "../settings/BibtexSettings";
-import { Notice, App } from "obsidian";
+import { Notice, App, TFolder, TFile} from "obsidian";
 import { BibTeXItem } from "./BibTeXItem"
 
 import Fuse from 'fuse.js';
@@ -11,19 +11,29 @@ export class BibtexAdapter {
 
     constructor(settings: BibtexSettings, app: App) {
         this.settings = settings;
+        this.refs = [];
 
-        const file = app.vault.getFileByPath(this.settings.exportedBibPath);
-        if (file != null) {
-            app.vault.read(file).then(content => {
+        const folder = app.vault.getAbstractFileByPath(this.settings.bibFolder);
+        
+        if (folder == null || !(folder instanceof TFolder)) {
+            new Notice(`Invalid reference folder path \`${this.settings.bibFolder}\`.`);
+            return;
+        }
+
+        const promises = folder.children
+            .filter(file => file instanceof TFile)
+            .map(file => app.vault.read(file));
+
+        Promise.all(promises).then(contents => {
+            contents.map(content => {
                 const regex = /@article\{[^}]+\}([\s\S]*?)(?=@article\{|$)/g;
-                
+                    
                 const regexKey = /@article\{([^,]+),/;
                 const regexAuthors = /author\s*=\s*\{([^}]*)\}/;
                 const regexTitle = /title\s*=\s*\{([^}]*)\}/;
                 const regexYear = /year\s*=\s*\{\s*(\d{4})\s*\}/;
                 const regexJournal = /journal\s*=\s*\{([^}]*)\}/;
 
-                this.refs = [];
                 let match;
                 while ((match = regex.exec(content)) !== null) {
                     const key = match[0].match(regexKey);
@@ -46,13 +56,12 @@ export class BibtexAdapter {
 
                     this.refs.push(entry);
                 }
-            
-                new Notice(`Loaded ${this.refs.length} BibTeX items.`);
             })
-        } else {
-            new Notice(`Could not read BibTeX file \`${this.settings.exportedBibPath}\`.`);
-            this.refs = [];
-        }
+
+            new Notice(`Loaded ${this.refs.length} BibTeX items.`);
+        }).catch(error => {
+            console.error("Error reading files:", error);
+        });
     }
 
     public async searchEverything(query: string) : Promise<BibTeXItem[]> {

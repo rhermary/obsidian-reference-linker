@@ -78,13 +78,13 @@ export class ReferenceLinkerSettingTab extends PluginSettingTab {
         containerEl.createEl('h2', { text: 'BibTeX Settings' });
 
         new Setting(containerEl)
-            .setName("BibTeX File Path")
-            .setDesc("Path to the exported references")
+            .setName("BibTeX Folder")
+            .setDesc("Path to the vault folder containing exported references (`.bib` files)")
             .addText(text => text
-                .setPlaceholder('')
-                .setValue(this.plugin.settings.bibtexSettings.exportedBibPath)
+                .setPlaceholder('/references/')
+                .setValue(this.plugin.settings.bibtexSettings.bibFolder)
                 .onChange(async (value) => {
-                    this.plugin.settings.bibtexSettings.exportedBibPath = value;
+                    this.plugin.settings.bibtexSettings.bibFolder = value;
                     await this.plugin.saveSettings();
                 }));
 

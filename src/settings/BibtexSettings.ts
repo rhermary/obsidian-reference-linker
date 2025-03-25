@@ -1,9 +1,9 @@
 export interface BibtexSettings {
-    exportedBibPath: string,
+    bibFolder: string,
     force: boolean,
 }
 
 export const DEFAULT_SETTINGS: BibtexSettings = {
-    exportedBibPath: "",
+    bibFolder: "",
     force: false,
 };
