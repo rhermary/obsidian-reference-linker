@@ -3,6 +3,7 @@ import { ZoteroAdapter } from './zotero/ZoteroAdapter'
 import { ReferenceLinkerSettingTab } from './settings/ReferenceLinkerSettingTab';
 import { PluginSettings, DEFAULT_SETTINGS } from './settings/ReferenceLinkerSettings';
 import { LinkerModal } from './LinkerModal';
+import { BlankLinkerModal } from './BlankLinkerModal';
 import { ImportModal } from './ImportModal';
 import { SimpleCiteModal } from './SimpleCiteModal';
 import { ScreenedModal } from './ScreenedModal';
@@ -27,6 +28,14 @@ export class ReferenceLinker extends Plugin {
             name: 'Open Reference',
             callback: () => {
                 new LinkerModal(this.app, this).open();
+            }
+        })
+
+        this.addCommand({
+            id: 'open-blank-reference',
+            name: 'New Reference Outside Database',
+            callback: () => {
+                new BlankLinkerModal(this.app, this).open();
             }
         })
 
