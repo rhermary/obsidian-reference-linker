@@ -66,7 +66,7 @@ export class SimpleCiteModal extends SuggestModal<RefItem> {
             content = `[[${newFilePath}|[@${content}]]]`;
         }
         else {
-            content =  `[@${content}]`;
+            content =  `[[${content}|@${content}]]`;
         }
 
         editor.replaceRange(
