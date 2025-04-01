@@ -4,6 +4,13 @@ import { DateTime } from 'luxon';
 import { ReferenceLinker } from './ReferenceLinker';
 import { PDFManager } from './pdf/PDFManager';
 import { formatAnnotations } from './utils';
+import { ZoteroAdapter } from './zotero/ZoteroAdapter';
+import { BibtexAdapter } from './bibtex/BibtexAdapter';
+
+import { ZoteroItem } from './zotero/ZoteroItem';
+import { BibTeXItem } from './bibtex/BibTeXItem';
+
+type RefItem = ZoteroItem | BibTeXItem
 
 export class ScreenedModal {
     plugin: ReferenceLinker;
@@ -57,11 +64,14 @@ export class ScreenedModal {
 
     async open(): Promise<void> {
         const content = await this.app.vault.read(this.template);
-        const items = await this.plugin.zoteroAdapter.searchEverything("");
+        
+        let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
+        if (this.plugin.bibtexAdapter.settings.force) {
+            adapter = this.plugin.bibtexAdapter;
+        }
+        const items: RefItem[] = await adapter.searchEverything("");
 
-
-        const pdfs = this.pdfManager.listPDFs();
-        // for (const pdf of pdfs) {
+        const pdfs = await this.pdfManager.listPDFs();
 
         const binding = await Promise.all(pdfs.map(async pdf => {
             const citeKey = pdf.split(".")[0];
