@@ -132,16 +132,23 @@ export class PDFManager {
         }
 
         let pdfFiles: string[] = [];
+        try {
+            const reader = fs.readdirSync(dir);
     
-        for (const file of fs.readdirSync(dir)) {
-            const fullPath = path.join(dir, file);
-            if (fs.statSync(fullPath).isDirectory()) {
-                pdfFiles = pdfFiles.concat(this.listPDFs_(fullPath)); // Recursively search subfolders
-            } else if (file.endsWith('.pdf')) {
-                pdfFiles.push(fullPath);
+            for (const file of reader) {
+                const fullPath = path.join(dir, file);
+                if (fs.statSync(fullPath).isDirectory()) {
+                    pdfFiles = pdfFiles.concat(this.listPDFs_(fullPath)); // Recursively search subfolders
+                } else if (file.endsWith('.pdf')) {
+                    pdfFiles.push(fullPath);
+                }
             }
+
+            return pdfFiles;
+        } catch {
+            new Notice(`Could not find folder ${dir}`)
+            return [];
         }
-        return pdfFiles;
     }
 
     async listPDFs() : Promise<string[]> {
