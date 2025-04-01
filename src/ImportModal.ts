@@ -20,7 +20,13 @@ export class ImportModal {
         const currentFile = this.app.workspace.getActiveFile()
         if (currentFile === null || editor === undefined) return;
 
-        const annotations = await this.pdfManager.getHighlights(currentFile.basename);
+        let basename = currentFile.basename
+        const metadata = this.app.metadataCache.getFileCache(currentFile);
+        if (metadata != null && metadata.frontmatter != undefined && "pdf" in metadata.frontmatter && metadata.frontmatter["pdf"] != null) {
+            basename = metadata.frontmatter["pdf"];
+        }
+
+        const annotations = await this.pdfManager.getHighlights(basename);
         const render = formatAnnotations(annotations);
 
         await this.app.vault.process(currentFile, (data: string) => {
