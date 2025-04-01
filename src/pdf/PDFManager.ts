@@ -1,5 +1,6 @@
-import { loadPdfJs} from 'obsidian';
+import { loadPdfJs, Notice } from 'obsidian';
 import * as fs from 'fs';
+import path from 'path';
 import { PDFDocumentProxy } from 'pdfjs-dist';
 import { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { ReferenceLinker } from '../ReferenceLinker';
@@ -30,15 +31,36 @@ export interface Annotation {
 
 export class PDFManager {
     plugin: ReferenceLinker
+    _allPDFs: Promise<string[]>
 
     constructor(plugin: ReferenceLinker) {
         this.plugin = plugin;
+        this._allPDFs = new Promise((resolve) => setTimeout(() => {
+            resolve(this.listPDFs_())
+        }, 0));
+    }
+
+    async _getReader(basename: string) : Promise<Buffer | null> {
+        return this.listPDFs().then(pdfs => {
+            const pdfFile = pdfs.filter(filePath => {
+                return filePath.endsWith(`${basename}.pdf`);
+            }).first();
+            
+            if (pdfFile == undefined) {
+                return null;
+            } else {
+                return fs.readFileSync(pdfFile);
+            }
+        });
     }
 
     async getHighlights(basename: string) : Promise<Annotation[]> {
-        const reader = fs.readFileSync(
-            `${this.plugin.settings.PDFFolder}/${basename}.pdf`
-        )
+        const reader = await this._getReader(basename);
+        if (reader == null) {
+            new Notice(`Could not find PDF '${basename}'.`);
+            return []
+        }
+
         const loader = await loadPdfJs();
         const pdf : PDFDocumentProxy = await loader.getDocument(reader).promise
 
@@ -59,7 +81,7 @@ export class PDFManager {
 
             annotations = annotations.filter(
                 ann => ann.subtype == "Highlight"
-            )
+            );
 
             for (const annotation of annotations) {
                 const highlightedText = extractHighlight(annotation, items)
@@ -79,9 +101,7 @@ export class PDFManager {
     }
     
     async getNumberHighlights(basename: string) : Promise<number> {
-        const reader = fs.readFileSync(
-            `${this.plugin.settings.PDFFolder}/${basename}.pdf`
-        )
+        const reader = await this._getReader(basename);
         const loader = await loadPdfJs();
         const document = await loader.getDocument(reader);
 
@@ -106,7 +126,25 @@ export class PDFManager {
         return totalAnnotations;
     }
 
-    listPDFs() : string[] {
-        return fs.readdirSync(this.plugin.settings.PDFFolder)
+    private listPDFs_(dir: string | null = null) : string[] {
+        if (dir == null) {
+            dir = this.plugin.settings.PDFFolder;
+        }
+
+        let pdfFiles: string[] = [];
+    
+        for (const file of fs.readdirSync(dir)) {
+            const fullPath = path.join(dir, file);
+            if (fs.statSync(fullPath).isDirectory()) {
+                pdfFiles = pdfFiles.concat(this.listPDFs_(fullPath)); // Recursively search subfolders
+            } else if (file.endsWith('.pdf')) {
+                pdfFiles.push(fullPath);
+            }
+        }
+        return pdfFiles;
+    }
+
+    async listPDFs() : Promise<string[]> {
+        return this._allPDFs;
     }
 }
