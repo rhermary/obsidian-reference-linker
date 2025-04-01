@@ -67,7 +67,10 @@ export class BibTeXItem {
         return this.key
     }
 
-    get raw(): BibTeXItem {
-        return this;
+    get raw(): object {
+        return {
+            ...this,
+            date: this.year,
+        };
     }
 }
