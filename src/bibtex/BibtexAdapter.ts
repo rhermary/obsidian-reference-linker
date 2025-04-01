@@ -80,6 +80,7 @@ export class BibtexAdapter {
                 ],
                 ignoreLocation: true,
                 threshold: .2,
+                useExtendedSearch: true,
             });
         }
 
