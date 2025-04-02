@@ -6,24 +6,20 @@ import { ReferenceLinker } from './ReferenceLinker';
 import { PDFManager } from './pdf/PDFManager';
 import { formatAnnotations } from './utils';
 import { BibTeXItem } from './bibtex/BibTeXItem';
-import { ZoteroAdapter } from './zotero/ZoteroAdapter';
-import { BibtexAdapter } from './bibtex/BibtexAdapter';
-import { _DebouncedSuggest } from './_DebouncedSuggest';
+import { _DebouncedRefSuggest } from './_DebouncedRefSuggest';
 
 // Debouncer implementation from https://github.com/joethei/obsidian-calibre/blob/master/src/modals/BookSuggestModal.ts#L56
 
 type RefItem = ZoteroItem | BibTeXItem 
 
-export class LinkerModal extends _DebouncedSuggest {
-    plugin: ReferenceLinker;
+export class LinkerModal extends _DebouncedRefSuggest {
     template: TFile;
     pdfManager: PDFManager
 
     private _env: njk.Environment;
 
     constructor(app: App, plugin: ReferenceLinker) {
-        super(app);
-        this.plugin = plugin;
+        super(app, plugin);
         this.updateTemplate();
         this.pdfManager = new PDFManager(plugin);
 
@@ -38,39 +34,11 @@ export class LinkerModal extends _DebouncedSuggest {
         });
     }
 
-    async getSuggestions_(query: string) {        
-        let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
-        if (this.plugin.bibtexAdapter.settings.force) {
-            adapter = this.plugin.bibtexAdapter;
-        }
-
-        return adapter.searchEverything(query)
-            .then((items: RefItem[]) =>
-                Object.fromEntries(items.map(x => [x.getCiteKey(), x]))
-            )
-            .then((items) => Object.values(items));
-    }
-
     updateTemplate() {
         // TODO: do something when empty list
         this.template = this.app.vault.getFiles().filter(
             file => file.path === this.plugin.settings.templatePath
         )[0];
-    }
-
-    renderSuggestion(reference: RefItem, el: HTMLElement) {
-        el.createEl("div", { text: reference.getTitle() });
-        el.createEl("small", { text: reference.getAuthors() });
-    }
-
-    private newFilePath(citeKey: string) : string {
-        return `${this.plugin.settings.referenceNotesFolder}/${citeKey}.md`
-    }
-
-    private fileExists(newFilePath: string) : boolean {
-        return this.app.vault.getFiles().filter(
-            file => file.path == newFilePath
-        ).length > 0
     }
 
     async onChooseSuggestion(item: RefItem, evt: MouseEvent | KeyboardEvent) {
