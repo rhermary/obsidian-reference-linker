@@ -88,9 +88,6 @@ export class BlankLinkerModal extends Modal {
             name: authorName,
         }));
 
-        console.log(title, year, authors, pdf, journal);
-        console.log(authors_);
-
         const citeKey = this._getCiteKey(title, year, this.firstAuthorFamilyName(authors_));
         const newFilePath = this.newFilePath(citeKey);
 

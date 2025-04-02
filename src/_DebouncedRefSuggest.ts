@@ -44,8 +44,9 @@ export abstract class _DebouncedRefSuggest extends SuggestModal<RefItem> {
                     metadata.journal || ""
                 )
             }
+            
             return null;
-        }).filter(item => item !== null);
+        }).filter((item): item is BibTeXItem => item !== null);
     }
 
     filteredReferencedFiles(query: string) : RefItem[] {
@@ -64,9 +65,7 @@ export abstract class _DebouncedRefSuggest extends SuggestModal<RefItem> {
             });
         }
 
-        const a = this._fuse.search(query).map(result => result.item).slice(0, 10);
-        console.log(a);
-        return a
+        return this._fuse.search(query).map(result => result.item).slice(0, 10);
     }
 
     async getSuggestions_(query: string): Promise<RefItem[]> {

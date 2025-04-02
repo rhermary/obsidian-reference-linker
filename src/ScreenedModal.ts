@@ -135,20 +135,15 @@ export class ScreenedModal {
         new Notice(`Annotations updated for ${updated.length} reference${updated.length > 1 ? 's': ''}.`, 0)
         new Notice(`${created.length} reference note${created.length > 1 ? 's': ''} created.`, 0)
 
-        console.log("created:", created);
-        console.log("updated:", updated);
-
         if (unassociated.length != 0) {
             let word = unassociated.length > 1 ? "PDFs have" : "PDF has";
 
             new Notice(`${unassociated.length} ${word} no associated reference.`)
-            console.log("unassociated:", unassociated);
 
             if (unassociated_highlighted.length != 0) {
                 word = unassociated_highlighted.length > 1 ? "PDFs are highlighted but have" : "PDF is highlighted but has";
 
                 new Notice(`${unassociated_highlighted.length} ${word} no associated reference.`)
-                console.log("unassociated with highlights:", unassociated_highlighted);
             }
         }
     }
