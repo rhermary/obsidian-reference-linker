@@ -1,4 +1,4 @@
-import { App, Notice, SuggestModal, TFile} from 'obsidian';
+import { App, Notice, SuggestModal, TFile, debounce, Debouncer } from 'obsidian';
 import { ZoteroItem } from './zotero/ZoteroItem';
 import * as njk from 'nunjucks';
 import { DateTime } from 'luxon';
@@ -9,13 +9,19 @@ import { BibTeXItem } from './bibtex/BibTeXItem';
 import { ZoteroAdapter } from './zotero/ZoteroAdapter';
 import { BibtexAdapter } from './bibtex/BibtexAdapter';
 
+// Debouncer implementation from https://github.com/joethei/obsidian-calibre/blob/master/src/modals/BookSuggestModal.ts#L56
+
 type RefItem = ZoteroItem | BibTeXItem 
 
 export class LinkerModal extends SuggestModal<RefItem> {
     plugin: ReferenceLinker;
     template: TFile;
-    _env: njk.Environment;
     pdfManager: PDFManager
+
+    private _env: njk.Environment;
+	private _query: string;
+	private _results: RefItem[] = [];
+	private readonly _debouncedSearch: Debouncer<[string], void>;
 
     constructor(app: App, plugin: ReferenceLinker) {
         super(app);
@@ -32,6 +38,31 @@ export class LinkerModal extends SuggestModal<RefItem> {
             chars.forEach(char => input = input.replace(char, ""));
             return input;
         });
+        
+        this._debouncedSearch = debounce(this.updateSearchResults, 700);
+        this._query = "";
+    }
+
+    async updateSearchResults(query: string) {
+		if(query === this._query) {
+            return
+        }
+        
+        this._query = query;
+        
+        let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
+        if (this.plugin.bibtexAdapter.settings.force) {
+            adapter = this.plugin.bibtexAdapter;
+        }
+
+        this._results = await adapter.searchEverything(query)
+            .then((items: RefItem[]) =>
+                Object.fromEntries(items.map(x => [x.getCiteKey(), x]))
+            )
+            .then((items) => Object.values(items));
+
+        //@ts-ignore
+        this.updateSuggestions();
     }
 
     updateTemplate() {
@@ -57,18 +88,10 @@ export class LinkerModal extends SuggestModal<RefItem> {
         el.createEl("small", { text: reference.getAuthors() });
     }
 
-    getSuggestions(query: string): RefItem[] | Promise<RefItem[]> {
-        let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
-        if (this.plugin.bibtexAdapter.settings.force) {
-            adapter = this.plugin.bibtexAdapter;
-        }
-
-        return adapter.searchEverything(query)
-            .then((items: RefItem[]) =>
-                Object.fromEntries(items.map(x => [x.getCiteKey(), x]))
-            )
-            .then((items) => Object.values(items));
-    }
+	async getSuggestions(query: string): Promise<RefItem[]> {
+		this._debouncedSearch(query);
+		return this._results;
+	}
 
     private newFilePath(citeKey: string) : string {
         return `${this.plugin.settings.referenceNotesFolder}/${citeKey}.md`
