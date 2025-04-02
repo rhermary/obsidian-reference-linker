@@ -1,13 +1,14 @@
-import { App, SuggestModal } from 'obsidian';
+import { App } from 'obsidian';
 import { ZoteroItem } from './zotero/ZoteroItem';
 import { ReferenceLinker } from './ReferenceLinker';
 import { BibTeXItem } from './bibtex/BibTeXItem';
 import { ZoteroAdapter } from './zotero/ZoteroAdapter';
 import { BibtexAdapter } from './bibtex/BibtexAdapter';
+import { _DebouncedSuggest } from './_DebouncedSuggest';
 
 type RefItem = ZoteroItem | BibTeXItem
 
-export class SimpleCiteModal extends SuggestModal<RefItem> {
+export class SimpleCiteModal extends _DebouncedSuggest {
     plugin: ReferenceLinker;
 
     constructor(app: App, plugin: ReferenceLinker) {
@@ -31,7 +32,7 @@ export class SimpleCiteModal extends SuggestModal<RefItem> {
         el.createEl("small", { text: reference.getAuthors() });
     }
 
-    getSuggestions(query: string): RefItem[] | Promise<RefItem[]> {
+    async getSuggestions_(query: string): Promise<RefItem[]> {
         let adapter : ZoteroAdapter | BibtexAdapter = this.plugin.zoteroAdapter;
         if (this.plugin.bibtexAdapter.settings.force) {
             adapter = this.plugin.bibtexAdapter;
