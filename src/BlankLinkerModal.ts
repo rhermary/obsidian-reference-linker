@@ -1,10 +1,12 @@
 import { App, Setting, TFile, Modal, Notice } from 'obsidian';
 import * as njk from 'nunjucks';
+import { sprintf } from 'sprintf-js'
 import { ReferenceLinker } from './ReferenceLinker';
 import { PDFManager } from './pdf/PDFManager';
-import { titleWords } from './zotero/utils';
+import { titleWords, normalizeName, stripQuotes } from './zotero/utils';
 import { formatAnnotations } from './utils';
 import { DateTime } from 'luxon';
+import { Creator } from './zotero/ZoteroItem'
 
 export class BlankLinkerModal extends Modal {
     plugin: ReferenceLinker;
@@ -32,18 +34,34 @@ export class BlankLinkerModal extends Modal {
 
         let title = '';
         new Setting(this.contentEl)
-        .setName('Title')
+        .setName('Title*')
         .addText((text) =>
             text.onChange((value) => {
-            title = value;
+            title = value.trim();
+            }));
+
+        let authors = ''
+        new Setting(this.contentEl)
+            .setName('Authors (Comma Separated)*')
+            .addText((text) =>
+                text.onChange((value) => {
+                    authors = value.trim();
             }));
 
         let year = '';
         new Setting(this.contentEl)
-            .setName('Year')
+            .setName('Year*')
             .addText((text) =>
                 text.onChange((value) => {
-                year = value;
+                year = value.trim();
+            }));
+
+        let journal = ''
+        new Setting(this.contentEl)
+            .setName('Journal')
+            .addText((text) =>
+                text.onChange((value) => {
+                    journal = value.trim();
             }));
 
         let pdf = ''
@@ -51,15 +69,7 @@ export class BlankLinkerModal extends Modal {
             .setName('File Name (PDF)')
             .addText((text) =>
                 text.onChange((value) => {
-                pdf = value;
-            }));
-
-        let author_name = ''
-        new Setting(this.contentEl)
-            .setName('First Author Family Name')
-            .addText((text) =>
-                text.onChange((value) => {
-                    author_name = value;
+                pdf = value.trim();
             }));
 
         new Setting(this.contentEl)
@@ -69,9 +79,49 @@ export class BlankLinkerModal extends Modal {
             .setCta()
             .onClick(() => {
                 this.close();
-                this.onSubmit(title, year, author_name, pdf);
+                this.onSubmit(title, year, authors, pdf, journal);
             }));
     }
+    async onSubmit(title: string, year: string, authors: string, pdf: string, journal: string) {
+        const authors_ : Creator[] = authors.split(',').map(authorName => ({
+            creatorType: "author",
+            name: authorName,
+        }));
+
+        console.log(title, year, authors, pdf, journal);
+        console.log(authors_);
+
+        const citeKey = this._getCiteKey(title, year, this.firstAuthorFamilyName(authors_));
+        const newFilePath = this.newFilePath(citeKey);
+
+        if (this.fileExists(newFilePath)) {
+            new Notice("File already exists!");
+            const file = this.app.vault.getFiles().filter(file => {
+                return file.path === newFilePath
+            })[0];
+
+            this.app.workspace.getLeaf("tab").openFile(file);
+            
+            return;
+        }
+
+        const content = await this.app.vault.read(this.template);
+        let render = this._env.renderString(content, {
+            title: title,
+            date: year,
+            citeKey: citeKey,
+            pdf: pdf,
+            publicationTitle: journal,
+            authors: authors_.map(creator => normalizeName(creator).fullName).join(", "),
+        });
+
+        const annotations = await this.pdfManager.getHighlights(pdf !== '' ? pdf : citeKey);
+        render += formatAnnotations(annotations);
+
+        const newFile = await this.app.vault.create(newFilePath, render);
+        this.app.workspace.getLeaf("tab").openFile(newFile);
+    }
+
 
     private _getCiteKey(title: string, year: string, author_name: string) : string {
         const titleSplit = titleWords(title, { skipWords: false });
@@ -98,34 +148,13 @@ export class BlankLinkerModal extends Modal {
         ).length > 0
     }
 
-    async onSubmit(title: string, year: string, author_name: string, pdf: string) {
-        const citeKey = this._getCiteKey(title, year, author_name);
-        const newFilePath = this.newFilePath(citeKey);
+    firstAuthorFamilyName(authors: Creator[], n = 0): string {
+        const template = n ? `%(f).${n}s` : '%(f)s';
 
-        if (this.fileExists(newFilePath)) {
-            new Notice("File already exists!");
-            const file = this.app.vault.getFiles().filter(file => {
-                return file.path === newFilePath
-            })[0];
-
-            this.app.workspace.getLeaf("tab").openFile(file);
-            
-            return;
-        }
-
-        const content = await this.app.vault.read(this.template);
-        let render = this._env.renderString(content, {
-            title: title,
-            date: year,
-            citeKey: citeKey,
-            pdf: pdf,
-        });
-
-        const annotations = await this.pdfManager.getHighlights(citeKey);
-        render += formatAnnotations(annotations);
-
-        const newFile = await this.app.vault.create(newFilePath, render);
-        this.app.workspace.getLeaf("tab").openFile(newFile);
+        return authors.map(normalizeName)
+            .map(name => sprintf(template, {
+                f: stripQuotes(name.lastName.split(' ').join('')),
+            })).first() || '';
     }
 
     updateTemplate() {
